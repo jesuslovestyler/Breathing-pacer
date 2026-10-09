@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Breathing Pacer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500&display=swap');
+
+    :root {
+      color-scheme: light dark;
+      --bg: #eef5f1;
+      --surface: #f8fbf9;
+      --ink: #183029;
+      --muted: #5d746c;
+      --line: #cddcd5;
+      --accent: #1d7565;
+      --accent-soft: #d5e9e1;
+      --accent-strong: #115b4f;
+      --orb-a: #80c9b5;
+      --orb-b: #288a76;
+      --orb-shadow: rgba(31, 118, 100, .24);
+      --ring: #adc9bf;
+      --focus: #0b6dca;
+      --button-ink: #ffffff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1714;
+        --surface: #14231e;
+        --ink: #e6f2ed;
+        --muted: #9db5ac;
+        --line: #2a433a;
+        --accent: #73c5ae;
+        --accent-soft: #1d3a31;
+        --accent-strong: #8dd4c0;
+        --orb-a: #76c3ae;
+        --orb-b: #247663;
+        --orb-shadow: rgba(74, 174, 146, .22);
+        --ring: #355a4d;
+        --focus: #75bfff;
+        --button-ink: #0b201a;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent-soft) 72%, transparent), transparent 42rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: "DM Sans", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font: inherit; }
+
+    button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .app {
+      width: min(100%, 740px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: max(28px, env(safe-area-inset-top)) clamp(18px, 5vw, 44px) max(30px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .intro {
+      text-align: center;
+      max-width: 560px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: clamp(34px, 7vw, 54px);
+      font-weight: 500;
+      letter-spacing: -.025em;
+      line-height: 1;
+    }
+
+    .intro p {
+      margin: 12px auto 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .stage {
+      width: min(100%, 370px);
+      aspect-ratio: 1;
+      margin: clamp(20px, 5vh, 38px) auto 14px;
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+
+    .stage::before,
+    .stage::after {
+      content: "";
+      position: absolute;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      opacity: .7;
+    }
+
+    .stage::before { inset: 8%; }
+    .stage::after { inset: 19%; opacity: .5; }
+
+    .progress {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+      overflow: visible;
+    }
+
+    .progress-track,
+    .progress-value {
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .progress-track { stroke: var(--ring); opacity: .38; }
+    .progress-value {
+      stroke: var(--accent);
+      stroke-linecap: round;
+      stroke-dasharray: 603.19;
+      stroke-dashoffset: 603.19;
+    }
+
+    .orb-wrap {
+      position: relative;
+      width: 64%;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      z-index: 1;
+    }
+
+    .orb {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 34% 28%, var(--orb-a), var(--orb-b) 72%);
+      box-shadow: 0 18px 54px var(--orb-shadow), inset 0 1px 1px rgba(255,255,255,.28);
+      transform: scale(.58);
+      will-change: transform;
+    }
+
+    .phase-copy {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 1px 14px rgba(6, 44, 35, .24);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .phase-copy { color: #f4fffb; }
+    }
+
+    .phase-label {
+      display: block;
+      font-size: clamp(23px, 6vw, 31px);
+      font-weight: 600;
+      letter-spacing: -.02em;
+    }
+
+    .phase-seconds {
+      display: block;
+      min-height: 25px;
+      margin-top: 2px;
+      font-size: 15px;
+      font-weight: 500;
+      opacity: .88;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .primary,
+    .secondary {
+      border: 0;
+      cursor: pointer;
+      min-height: 50px;
+      border-radius: 999px;
+      padding: 0 25px;
+      font-weight: 600;
+      transition: background-color .18s ease, color .18s ease, transform .12s ease;
+    }
+
+    .primary {
+      min-width: 142px;
+      background: var(--accent);
+      color: var(--button-ink);
+      box-shadow: 0 8px 24px var(--orb-shadow);
+    }
+
+    .primary:hover { background: var(--accent-strong); }
+    .primary:active, .secondary:active { transform: translateY(1px); }
+
+    .secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
+    .secondary[hidden] { display: none; }
+    .secondary:hover { color: var(--ink); background: var(--surface); }
+
+    .session-line {
+      min-height: 26px;
+      margin: 13px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    .settings {
+      width: 100%;
+      margin-top: clamp(18px, 4vh, 32px);
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .settings h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .sound-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      padding: 5px 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .switch {
+      width: 34px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--line);
+      position: relative;
+      transition: background-color .2s ease;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: var(--surface);
+      box-shadow: 0 1px 3px rgba(0,0,0,.18);
+      transition: transform .2s ease;
+    }
+
+    .sound-toggle[aria-pressed="true"] .switch { background: var(--accent); }
+    .sound-toggle[aria-pressed="true"] .switch::after { transform: translateX(14px); }
+
+    .patterns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .pattern {
+      min-width: 0;
+      min-height: 68px;
+      padding: 11px 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color .18s ease, background-color .18s ease;
+    }
+
+    .pattern:hover { border-color: var(--accent); }
+    .pattern[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .pattern:disabled {
+      cursor: default;
+      opacity: .58;
+    }
+
+    .pattern strong,
+    .pattern span { display: block; }
+
+    .pattern strong {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .pattern span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .hint {
+      margin: 15px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    @media (max-width: 480px) {
+      .app { padding-inline: 16px; }
+      .stage { width: min(100%, 330px); margin-top: 16px; }
+      .settings { margin-top: 18px; }
+      .patterns { grid-template-columns: 1fr; }
+      .pattern {
+        min-height: 54px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+      }
+      .pattern span { margin-top: 0; text-align: right; }
+      .hint { display: none; }
+    }
+
+    @media (max-height: 740px) and (min-width: 481px) {
+      .app { padding-top: 20px; }
+      .stage { width: 310px; margin-block: 12px 8px; }
+      .settings { margin-top: 12px; padding-top: 16px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .orb { will-change: auto; }
+      .primary, .secondary, .pattern, .switch, .switch::after { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="intro" aria-labelledby="main-title">
+      <h1 id="main-title">Breathe with the circle</h1>
+      <p>Let your shoulders soften. Follow the circle as it grows and settles.</p>
+    </section>
+
+    <section class="stage" aria-live="polite" aria-atomic="true">
+      <svg class="progress" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="progress-track" cx="100" cy="100" r="96" />
+        <circle id="progressValue" class="progress-value" cx="100" cy="100" r="96" />
+      </svg>
+      <div class="orb-wrap">
+        <div id="orb" class="orb"></div>
+        <div class="phase-copy">
+          <span id="phaseLabel" class="phase-label">Ready</span>
+          <span id="phaseSeconds" class="phase-seconds">Gentle and easy</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="controls">
+      <button id="mainButton" class="primary" type="button">Begin</button>
+      <button id="resetButton" class="secondary" type="button" hidden>Reset</button>
+    </div>
+    <p id="sessionLine" class="session-line">Calm · 4 seconds in, 6 seconds out</p>
+
+    <section class="settings" aria-labelledby="pattern-title">
+      <div class="settings-header">
+        <h2 id="pattern-title">Breathing pattern</h2>
+        <button id="soundToggle" class="sound-toggle" type="button" aria-pressed="false">
+          <span class="switch" aria-hidden="true"></span>
+          <span>Soft chime</span>
+        </button>
+      </div>
+      <div class="patterns" role="group" aria-label="Choose a breathing pattern">
+        <button class="pattern" type="button" data-pattern="calm" aria-pressed="true">
+          <strong>Calm</strong><span>In 4 · Out 6</span>
+        </button>
+        <button class="pattern" type="button" data-pattern="box" aria-pressed="false">
+          <strong>Box</strong><span>4 · 4 · 4 · 4</span>
+        </button>
+        <button class="pattern" type="button" data-pattern="relax" aria-pressed="false">
+          <strong>Relax</strong><span>In 4 · Hold 7 · Out 8</span>
+        </button>
+      </div>
+      <p class="hint">Press the space bar to begin or pause. Keep every breath comfortable—never force it.</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var patterns = {
+        calm: {
+          name: "Calm",
+          summary: "4 seconds in, 6 seconds out",
+          phases: [
+            { label: "Breathe in", seconds: 4, from: .58, to: 1 },
+            { label: "Breathe out", seconds: 6, from: 1, to: .58 }
+          ]
+        },
+        box: {
+          name: "Box",
+          summary: "4 in, 4 hold, 4 out, 4 hold",
+          phases: [
+            { label: "Breathe in", seconds: 4, from: .58, to: 1 },
+            { label: "Hold", seconds: 4, from: 1, to: 1 },
+            { label: "Breathe out", seconds: 4, from: 1, to: .58 },
+            { label: "Hold", seconds: 4, from: .58, to: .58 }
+          ]
+        },
+        relax: {
+          name: "Relax",
+          summary: "4 in, hold 7, out 8",
+          phases: [
+            { label: "Breathe in", seconds: 4, from: .58, to: 1 },
+            { label: "Hold", seconds: 7, from: 1, to: 1 },
+            { label: "Breathe out", seconds: 8, from: 1, to: .58 }
+          ]
+        }
+      };
+
+      var selectedKey = "calm";
+      var running = false;
+      var started = false;
+      var phaseIndex = 0;
+      var phaseElapsedBeforePause = 0;
+      var phaseStartedAt = 0;
+      var totalElapsed = 0;
+      var sessionStartedAt = 0;
+      var cycles = 0;
+      var animationFrame = null;
+      var soundOn = false;
+      var audioContext = null;
+      var circumference = 2 * Math.PI * 96;
+
+      var orb = document.getElementById("orb");
+      var phaseLabel = document.getElementById("phaseLabel");
+      var phaseSeconds = document.getElementById("phaseSeconds");
+      var progressValue = document.getElementById("progressValue");
+      var mainButton = document.getElementById("mainButton");
+      var resetButton = document.getElementById("resetButton");
+      var sessionLine = document.getElementById("sessionLine");
+      var soundToggle = document.getElementById("soundToggle");
+      var patternButtons = Array.prototype.slice.call(document.querySelectorAll(".pattern"));
+
+      progressValue.style.strokeDasharray = String(circumference);
+      progressValue.style.strokeDashoffset = String(circumference);
+
+      function currentPattern() {
+        return patterns[selectedKey];
+      }
+
+      function formatTime(seconds) {
+        var mins = Math.floor(seconds / 60);
+        var secs = Math.floor(seconds % 60);
+        return mins + ":" + String(secs).padStart(2, "0");
+      }
+
+      function updateSessionLine(now) {
+        if (!started) {
+          sessionLine.textContent = currentPattern().name + " · " + currentPattern().summary;
+          return;
+        }
+        var elapsed = totalElapsed;
+        if (running) elapsed += (now - sessionStartedAt) / 1000;
+        var breathWord = cycles === 1 ? "cycle" : "cycles";
+        sessionLine.textContent = formatTime(elapsed) + " · " + cycles + " " + breathWord;
+      }
+
+      function easeInOut(t) {
+        return .5 - Math.cos(Math.PI * t) / 2;
+      }
+
+      function render() {
+        if (!running) return;
+
+        var now = Date.now();
+        var phase = currentPattern().phases[phaseIndex];
+        var elapsed = phaseElapsedBeforePause + (now - phaseStartedAt) / 1000;
+
+        if (elapsed >= phase.seconds) {
+          phaseElapsedBeforePause = 0;
+          phaseIndex += 1;
+          if (phaseIndex >= currentPattern().phases.length) {
+            phaseIndex = 0;
+            cycles += 1;
+          }
+          phaseStartedAt = now;
+          chime();
+          phase = currentPattern().phases[phaseIndex];
+          elapsed = 0;
+        }
+
+        var progress = Math.min(1, elapsed / phase.seconds);
+        var scale = phase.from + (phase.to - phase.from) * easeInOut(progress);
+        orb.style.transform = "scale(" + scale.toFixed(4) + ")";
+        phaseLabel.textContent = phase.label;
+        phaseSeconds.textContent = Math.max(1, Math.ceil(phase.seconds - elapsed)) + " sec";
+        progressValue.style.strokeDashoffset = String(circumference * (1 - progress));
+        updateSessionLine(now);
+        animationFrame = requestAnimationFrame(render);
+      }
+
+      function chime() {
+        if (!soundOn) return;
+        try {
+          if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioContext.state === "suspended") audioContext.resume();
+          var oscillator = audioContext.createOscillator();
+          var gain = audioContext.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(520, audioContext.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(390, audioContext.currentTime + .45);
+          gain.gain.setValueAtTime(.0001, audioContext.currentTime);
+          gain.gain.exponentialRampToValueAtTime(.07, audioContext.currentTime + .025);
+          gain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + .48);
+          oscillator.connect(gain);
+          gain.connect(audioContext.destination);
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + .5);
+        } catch (error) {
+          soundOn = false;
+          soundToggle.setAttribute("aria-pressed", "false");
+        }
+      }
+
+      function start() {
+        var now = Date.now();
+        if (!started) {
+          started = true;
+          phaseIndex = 0;
+          phaseElapsedBeforePause = 0;
+          totalElapsed = 0;
+          cycles = 0;
+          chime();
+        }
+        if (soundOn && audioContext && audioContext.state === "suspended") audioContext.resume();
+        running = true;
+        phaseStartedAt = now;
+        sessionStartedAt = now;
+        mainButton.textContent = "Pause";
+        resetButton.hidden = false;
+        patternButtons.forEach(function (button) { button.disabled = true; });
+        animationFrame = requestAnimationFrame(render);
+      }
+
+      function pause() {
+        var now = Date.now();
+        var phase = currentPattern().phases[phaseIndex];
+        phaseElapsedBeforePause += (now - phaseStartedAt) / 1000;
+        phaseElapsedBeforePause = Math.min(phaseElapsedBeforePause, phase.seconds);
+        totalElapsed += (now - sessionStartedAt) / 1000;
+        running = false;
+        if (animationFrame) cancelAnimationFrame(animationFrame);
+        mainButton.textContent = "Continue";
+        phaseSeconds.textContent = "Paused";
+        updateSessionLine(now);
+      }
+
+      function reset() {
+        if (running) {
+          totalElapsed += (Date.now() - sessionStartedAt) / 1000;
+          running = false;
+        }
+        if (animationFrame) cancelAnimationFrame(animationFrame);
+        started = false;
+        phaseIndex = 0;
+        phaseElapsedBeforePause = 0;
+        totalElapsed = 0;
+        cycles = 0;
+        orb.style.transform = "scale(.58)";
+        progressValue.style.strokeDashoffset = String(circumference);
+        phaseLabel.textContent = "Ready";
+        phaseSeconds.textContent = "Gentle and easy";
+        mainButton.textContent = "Begin";
+        resetButton.hidden = true;
+        patternButtons.forEach(function (button) { button.disabled = false; });
+        updateSessionLine(Date.now());
+      }
+
+      mainButton.addEventListener("click", function () {
+        if (running) pause(); else start();
+      });
+
+      resetButton.addEventListener("click", reset);
+
+      soundToggle.addEventListener("click", function () {
+        soundOn = !soundOn;
+        soundToggle.setAttribute("aria-pressed", String(soundOn));
+        if (soundOn) {
+          try {
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            chime();
+          } catch (error) {
+            soundOn = false;
+            soundToggle.setAttribute("aria-pressed", "false");
+          }
+        }
+      });
+
+      patternButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          selectedKey = button.getAttribute("data-pattern");
+          patternButtons.forEach(function (item) {
+            item.setAttribute("aria-pressed", String(item === button));
+          });
+          updateSessionLine(Date.now());
+        });
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.code === "Space" && event.target === document.body) {
+          event.preventDefault();
+          if (running) pause(); else start();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
