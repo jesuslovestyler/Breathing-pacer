@@ -372,6 +372,32 @@
       .settings { margin-top: 12px; padding-top: 16px; }
     }
 
+    .home-pill {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
+      z-index: 10;
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 15px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 4px 14px var(--orb-shadow);
+    }
+
+    .home-pill:hover { border-color: var(--accent); color: var(--accent-strong); }
+    .home-pill:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+    @media (max-width: 900px) {
+      .app { padding-top: calc(max(28px, env(safe-area-inset-top)) + 48px); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .orb { will-change: auto; }
       .primary, .secondary, .pattern, .switch, .switch::after { transition: none; }
@@ -379,6 +405,7 @@
   </style>
 </head>
 <body>
+  <a class="home-pill" href="https://jesuslovestyler.com/">⌂ Home</a>
   <main class="app">
     <section class="intro" aria-labelledby="main-title">
       <h1 id="main-title">Breathe with the circle</h1>
@@ -659,5 +686,6 @@
       });
     })();
   </script>
+  <script data-goatcounter="https://jesuslovestyler.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
