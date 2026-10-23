@@ -1,20 +1,8 @@
-# Breathing Pacer Artifact
+# Breathing Pacer
 
-A breathing pacer web app, built with Noki — Tyler's SI agent — through artifact engineering: describing what you want in plain language and getting working software back.
+A breathing pacer: a calm visual guide for slow, steady breathing — for prayer, for rest, and for anxious moments. Follow the circle; breathe in, hold, breathe out.
 
-## What it is
+**Live:** https://jesuslovestyler.github.io/Breathing-pacer/
+**Home:** https://jesuslovestyler.com/
 
-- Animated breathing guide with phase countdowns
-- Three patterns: Calm, Box, and Relax
-- Session timing with pause/reset controls
-- Optional soft transition chime
-- Keyboard support
-- Responsive mobile layout, light and dark themes
-
-## Run it
-
-Just open `index.html` in any browser. No build step, no dependencies. Or enable GitHub Pages on this repo to host it live.
-
-## Built with
-
-Artifact engineering — natural language as a programming interface. Coined by Tyler, October 2026.
+One self-contained page: no account, no ads, nothing to buy. Released into the public domain (Unlicense — see LICENSE). Built by Tyler with Noki.
